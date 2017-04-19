@@ -12,7 +12,8 @@ boxes = cross(rows, cols)
 row_units = [cross(r, cols) for r in rows]
 column_units = [cross(rows, c) for c in cols]
 square_units = [cross(rs, cs) for rs in ('ABC','DEF','GHI') for cs in ('123','456','789')]
-unitlist = row_units + column_units + square_units
+diagonal_units =  [[s+t for s,t in zip(rows,cols)],[s+t for s,t in zip(rows,cols[::-1])]]
+unitlist = row_units + column_units + square_units + diagonal_units
 units = dict((s, [u for u in unitlist if s in u]) for s in boxes)
 peers = dict((s, set(sum(units[s],[]))-set([s])) for s in boxes)
 
@@ -56,8 +57,32 @@ def naked_twins(values):
     """
 
     # Find all instances of naked twins
+    #Filter out all the boxes that are having 2 possible values
+    box_2_val = [box for box in values.keys() if len(values[box]) == 2]
+    #Find out which 2 of them are same, i.e., find naked twin
+    naked_twin = []
+    for box1 in box_2_val:
+        #print(box1)
+        #print(peers[box1])
+        for box2 in peers[box1]:
+            if (values[box1]) == (values[box2]):
+                naked_twin = naked_twin + [[box1,box2]]
     # Eliminate the naked twins as possibilities for their peers
-
+    for i in range(len(naked_twin)):
+        box1 = naked_twin[i][0]
+        box2 = naked_twin[i][1]
+        # compute intersection of peers
+        peers1 = set(peers[box1])
+        peers2 = set(peers[box2])
+        peers_int = peers1 & peers2
+        # Delete the two digits in naked twins from all common peers.
+        for peer_val in peers_int:
+            if len(values[peer_val])>2:
+                for rm_val in values[box1]:
+                    values = assign_value(values, peer_val, values[peer_val].replace(rm_val,''))
+    return values
+                
+ 
 def grid_values(grid):
     """
     Convert grid into a dict of {square: char} with '123456789' for empties.
@@ -117,8 +142,11 @@ def reduce_puzzle(values):
     stalled = False
     while not stalled:
         solved_values_before = len([box for box in values.keys() if len(values[box]) == 1])
+        
         values = eliminate(values)
         values = only_choice(values)
+        values = naked_twins(values)
+        
         solved_values_after = len([box for box in values.keys() if len(values[box]) == 1])
         stalled = solved_values_before == solved_values_after
         if len([box for box in values.keys() if len(values[box]) == 0]):
@@ -131,10 +159,13 @@ def search(values):
     values = reduce_puzzle(values)
     if values is False:
         return False ## Failed earlier
+    
     if all(len(values[s]) == 1 for s in boxes): 
         return values ## Solved!
+    
     # Choose one of the unfilled squares with the fewest possibilities
     n,s = min((len(values[s]), s) for s in boxes if len(values[s]) > 1)
+    
     # Now use recurrence to solve each one of the resulting sudokus, and 
     for value in values[s]:
         new_sudoku = values.copy()
