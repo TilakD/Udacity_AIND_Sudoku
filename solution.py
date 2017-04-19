@@ -78,8 +78,8 @@ def naked_twins(values):
         # Delete the two digits in naked twins from all common peers.
         for peer_val in peers_int:
             if len(values[peer_val])>2:
-                for rm_val in values[box1]:
-                    values = assign_value(values, peer_val, values[peer_val].replace(rm_val,''))
+                for val in values[box1]:
+                    values = assign_value(values, peer_val, values[peer_val].replace(val,''))
     return values
                 
  
